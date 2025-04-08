@@ -1,0 +1,9 @@
+streamlit
+yfinance
+pandas
+numpy
+matplotlib
+requests
+firebase-admin
+plotly
+python-dotenv
