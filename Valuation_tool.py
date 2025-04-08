@@ -12,8 +12,7 @@ import time
 
 # Initialize environment
 load_dotenv()
-st.set_page_config(layout="wide", page_title="Valuation Toolkit Pro", page_icon="📊")
-
+st.set_page_config(layout="wide", page_title="Intrinsic", page_icon=":chart_with_upwards_trend:")
 
 # =============================================
 # CORE CONFIGURATION
@@ -262,7 +261,7 @@ class DCFValuation:
 
     def display(self):
         """Enhanced DCF display with scenario analysis"""
-        with st.expander("💵 Discounted Cash Flow Analysis", expanded=True):
+        with st.expander("Discounted Cash Flow Analysis", expanded=True):
             col1, col2, col3 = st.columns(3)
             with col1:
                 growth = st.slider("Revenue Growth (%)", 0.0, 25.0, 8.0, 0.5) / 100
@@ -289,7 +288,7 @@ class DCFValuation:
                                delta_color="normal" if margin_safety > 0 else "inverse")
 
                 # Scenario Analysis
-                st.write("### Scenario Analysis")
+                st.subheader("Scenario Analysis")
                 scenario_df = pd.DataFrame.from_dict({
                     k: {
                         'Value': f"{self.currency_symbol}{v['intrinsic_value']:,.2f}" if v else 'N/A',
@@ -315,7 +314,7 @@ class DCFValuation:
                 st.plotly_chart(fig, use_container_width=True)
 
                 # DCF Breakdown
-                st.write("### DCF Calculation Breakdown")
+                st.subheader("DCF Calculation Breakdown")
                 breakdown_data = {
                     "Component": ["Initial Free Cash Flow", "Discount Rate", "Terminal Growth Rate",
                                   "High Growth Period", "Terminal Value", "DCF Value"],
@@ -407,7 +406,7 @@ class ComparableAnalysis:
                             '1Y Return': self._get_1y_return(ticker)
                         })
 
-            return pd.DataFrame(peer_data).fillna("N/A")
+            return pd.DataFrame(peer_data)
         except Exception as e:
             st.error(f"Comparable analysis error: {str(e)}")
             return pd.DataFrame()
@@ -424,8 +423,8 @@ class ComparableAnalysis:
 
     def display(self):
         """Display comparable analysis with improved visualization"""
-        with st.expander("🏭 Comparable Company Analysis", expanded=True):
-            st.write("### Relative Valuation Multiples")
+        with st.expander("Comparable Company Analysis", expanded=True):
+            st.subheader("Relative Valuation Multiples")
 
             df_comps = self.analyze()
             if df_comps.empty:
@@ -445,34 +444,30 @@ class ComparableAnalysis:
                 if not all([current_price, shares_outstanding]):
                     st.warning("Insufficient data for valuation comparison")
 
+                # Convert numeric columns to float first
+                numeric_cols = ['P/E', 'Forward P/E', 'P/S', 'EV/EBITDA', 'P/B']
+                for col in numeric_cols:
+                    if col in df_comps.columns:
+                        df_comps[col] = pd.to_numeric(df_comps[col], errors='coerce')
+
                 # Calculate implied valuations - avoid division by zero
                 valuation = {}
 
                 # Only add metrics with valid data
-                if current_eps and not pd.isna(df_comps['P/E'].median()) and df_comps['P/E'].median() not in ["N/A",
-                                                                                                              None]:
-                    valuation['P/E Implied'] = current_eps * pd.to_numeric(df_comps['P/E'].replace("N/A", np.nan),
-                                                                           errors='coerce').median()
+                if current_eps and not pd.isna(df_comps['P/E'].median()) and not np.isnan(df_comps['P/E'].median()):
+                    valuation['P/E Implied'] = current_eps * df_comps['P/E'].median()
 
-                if forward_eps and not pd.isna(df_comps['Forward P/E'].median()) and df_comps[
-                    'Forward P/E'].median() not in ["N/A", None]:
-                    valuation['Forward P/E Implied'] = forward_eps * pd.to_numeric(
-                        df_comps['Forward P/E'].replace("N/A", np.nan), errors='coerce').median()
+                if forward_eps and not pd.isna(df_comps['Forward P/E'].median()) and not np.isnan(df_comps['Forward P/E'].median()):
+                    valuation['Forward P/E Implied'] = forward_eps * df_comps['Forward P/E'].median()
 
-                if current_revenue and shares_outstanding and not pd.isna(df_comps['P/S'].median()) and df_comps[
-                    'P/S'].median() not in ["N/A", None]:
-                    valuation['P/S Implied'] = (current_revenue / shares_outstanding) * pd.to_numeric(
-                        df_comps['P/S'].replace("N/A", np.nan), errors='coerce').median()
+                if current_revenue and shares_outstanding and not pd.isna(df_comps['P/S'].median()) and not np.isnan(df_comps['P/S'].median()):
+                    valuation['P/S Implied'] = (current_revenue / shares_outstanding) * df_comps['P/S'].median()
 
-                if current_ebitda and shares_outstanding and not pd.isna(df_comps['EV/EBITDA'].median()) and df_comps[
-                    'EV/EBITDA'].median() not in ["N/A", None]:
-                    valuation['EV/EBITDA Implied'] = (current_ebitda * pd.to_numeric(
-                        df_comps['EV/EBITDA'].replace("N/A", np.nan), errors='coerce').median()) / shares_outstanding
+                if current_ebitda and shares_outstanding and not pd.isna(df_comps['EV/EBITDA'].median()) and not np.isnan(df_comps['EV/EBITDA'].median()):
+                    valuation['EV/EBITDA Implied'] = (current_ebitda * df_comps['EV/EBITDA'].median()) / shares_outstanding
 
-                if book_value and not pd.isna(df_comps['P/B'].median()) and df_comps['P/B'].median() not in ["N/A",
-                                                                                                             None]:
-                    valuation['P/B Implied'] = book_value * pd.to_numeric(df_comps['P/B'].replace("N/A", np.nan),
-                                                                          errors='coerce').median()
+                if book_value and not pd.isna(df_comps['P/B'].median()) and not np.isnan(df_comps['P/B'].median()):
+                    valuation['P/B Implied'] = book_value * df_comps['P/B'].median()
 
                 if current_price:
                     valuation['Current Price'] = current_price
@@ -509,14 +504,14 @@ class ComparableAnalysis:
                                                 delta_color="normal" if upside_potential > 0 else "inverse")
 
                 # Peer comparison table
-                st.write("### Peer Comparison Metrics")
+                st.subheader("Peer Comparison Metrics")
 
                 # Format the dataframe safely
                 def safe_format(x, fmt):
                     if pd.isna(x) or x == "N/A":
                         return "N/A"
                     try:
-                        return fmt.format(x)
+                        return fmt.format(float(x))
                     except:
                         return str(x)
 
@@ -547,7 +542,7 @@ class ComparableAnalysis:
                     )
 
                 with cols[1]:
-                    st.write("### Multiple Comparison")
+                    st.subheader("Multiple Comparison")
                     # Create a radar chart of multiples
                     if not df_comps.empty and len(df_comps) > 1:
                         try:
@@ -557,7 +552,7 @@ class ComparableAnalysis:
                             # Convert to numeric, handling "N/A" values
                             chart_data = df_comps.copy()
                             for col in available_metrics:
-                                chart_data[col] = pd.to_numeric(chart_data[col].replace("N/A", np.nan), errors='coerce')
+                                chart_data[col] = pd.to_numeric(chart_data[col], errors='coerce')
 
                             # Get median values
                             median_values = chart_data[available_metrics].median()
@@ -659,7 +654,7 @@ class DividendValuation:
 
     def display(self):
         """Display dividend valuation model"""
-        with st.expander("💰 Dividend Discount Model", expanded=True):
+        with st.expander("Dividend Discount Model", expanded=True):
             # Check if company pays dividends
             current_dividend = self.data['info'].get('dividendRate', 0)
             dividend_yield = self.data['info'].get('dividendYield', 0) * 100
@@ -729,7 +724,7 @@ class DividendValuation:
                 # Show dividend history
                 dividend_history = self.get_dividend_history()
                 if dividend_history:
-                    st.write("### Dividend Payment History")
+                    st.subheader("Dividend Payment History")
 
                     # Convert to DataFrame for display
                     hist_df = pd.DataFrame(dividend_history)
@@ -744,7 +739,7 @@ class DividendValuation:
                     )
 
                 # Show calculation breakdown
-                st.write("### DDM Calculation Breakdown")
+                st.subheader("DDM Calculation Breakdown")
                 breakdown_data = {
                     "Component": ["Current Dividend", "Required Return", "Growth Rate", "DDM Formula", "DDM Value"],
                     "Value": [
@@ -814,7 +809,7 @@ class TechnicalAnalysis:
 
     def display(self):
         """Display technical analysis charts"""
-        with st.expander("📊 Technical Analysis", expanded=True):
+        with st.expander("Technical Analysis", expanded=True):
             indicator_data = self.calculate_indicators()
 
             if indicator_data is None or indicator_data.empty:
@@ -907,9 +902,6 @@ class TechnicalAnalysis:
 
             with tab2:
                 # Create subplot with shared x-axis
-                fig2 = go.Figure()
-
-                # Plot MACD
                 fig2 = go.Figure()
                 fig2.add_trace(go.Scatter(
                     x=indicator_data.index,
@@ -1110,9 +1102,9 @@ class ValuationSummary:
 
             # Company header with improved styling
             st.markdown(f"""
-            <div style="background-color:#f0f2f6;padding:20px;border-radius:10px;margin-bottom:20px">
+            <div style="background-color:#f8f9fa;padding:20px;border-radius:5px;margin-bottom:20px;border-left:4px solid #2c3e50">
                 <h1 style="color:#2c3e50;margin-bottom:5px">{company_name} ({ticker})</h1>
-                <p style="color:#7f8c8d;font-size:16px"><i>{sector} > {industry}</i></p>
+                <p style="color:#6c757d;font-size:16px">{sector} > {industry}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1166,7 +1158,7 @@ class ValuationSummary:
                 st.plotly_chart(fig, use_container_width=True)
 
             # Description with expandable section
-            with st.expander("📝 Company Description", expanded=False):
+            with st.expander("Company Description", expanded=False):
                 desc = self.data['info'].get('longBusinessSummary', 'No description available.')
                 st.markdown(f"<div style='text-align: justify;'>{desc}</div>", unsafe_allow_html=True)
 
@@ -1188,17 +1180,16 @@ def main():
             'technical': True
         }
 
-    # Main title with better styling
+    # Main title with professional styling
     st.markdown("""
-    <div style="background-color:#2c3e50;padding:20px;border-radius:10px;margin-bottom:20px">
-        <h1 style="color:white;text-align:center;">🚀 Valuation Toolkit Pro</h1>
-        <p style="color:#bdc3c7;text-align:center;">A comprehensive stock valuation and technical analysis platform</p>
+    <div style="background-color:#2c3e50;padding:20px;border-radius:5px;margin-bottom:20px">
+        <h1 style="color:white;text-align:center;">Intrinsic</h1>
+        <p style="color:#bdc3c7;text-align:center;">Comprehensive stock valuation and analysis</p>
     </div>
     """, unsafe_allow_html=True)
 
     # Sidebar configuration with improved organization
     with st.sidebar:
-        st.image("https://upload.wikimedia.org/wikipedia/commons/d/d2/Logo_of_Financial_Analysis_PNG.png", width=100)
         st.title("Analysis Settings")
 
         # Ticker input
@@ -1216,13 +1207,13 @@ def main():
         # API keys for additional data sources
         api_keys = {}
         if source_key != "yfinance":
-            with st.expander(f"🔑 Configure {data_source} API"):
+            with st.expander(f"Configure {data_source} API"):
                 api_key = st.text_input(f"{data_source} API Key", type="password")
                 if api_key:
                     api_keys[source_key.lower()] = api_key
 
         # Advanced settings
-        with st.expander("⚙️ Advanced Settings"):
+        with st.expander("Advanced Settings"):
             risk_free_rate = st.slider(
                 "Risk-Free Rate (%)",
                 0.0, 10.0,
@@ -1247,12 +1238,12 @@ def main():
             config.valuation_params['terminal_growth'] = terminal_growth
 
         # Custom peer selection
-        with st.expander("👥 Custom Peer Companies"):
+        with st.expander("Custom Peer Companies"):
             custom_peers = st.text_input("Enter tickers separated by commas")
             use_custom_peers = st.checkbox("Use custom peers instead of industry defaults")
 
         # Display settings
-        with st.expander("👀 Display Settings"):
+        with st.expander("Display Settings"):
             show_technical = st.checkbox("Show Technical Analysis", True)
             show_dividends = st.checkbox("Show Dividend Analysis", True)
 
@@ -1261,7 +1252,7 @@ def main():
 
     with tab1:
         # Fetch data with progress indicator
-        with st.spinner(f"📊 Loading data for {ticker}..."):
+        with st.spinner(f"Loading data for {ticker}..."):
             ticker_data = get_market_data(ticker, source=source_key, api_keys=api_keys)
 
         if ticker_data:
@@ -1289,7 +1280,7 @@ def main():
 
     with tab2:
         if ticker_data:
-            st.write("### Financial Statements")
+            st.subheader("Financial Statements")
 
             # Financial statement tabs
             fin_tabs = st.tabs(["Income Statement", "Balance Sheet", "Cash Flow"])
@@ -1313,13 +1304,6 @@ def main():
                     st.warning("Cash flow statement data not available")
         else:
             st.warning("No financial data available for the selected ticker")
-
-    # Footer with improved styling
-    st.markdown("""
-    <div style="text-align:center;padding:20px;margin-top:20px;background-color:#f0f2f6;border-radius:10px">
-        <p style="color:#7f8c8d">© 2023 Valuation Toolkit Pro | Data provided by selected data sources</p>
-    </div>
-    """, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
